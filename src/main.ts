@@ -13,6 +13,6 @@ async function bootstrap() {
   app.enableCors(corsOptions);
   //소켓 어뎁터로 연결 합니다.
   app.useWebSocketAdapter(new IoAdapter(app));
-  await app.listen(3000);
+  await app.listen(8080);
 }
 bootstrap();

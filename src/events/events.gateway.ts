@@ -8,7 +8,7 @@ import { Socket } from 'socket.io';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
-@WebSocketGateway({ namespace: 'user' })
+@WebSocketGateway({ cors: { origin: 'http://localhost:3000', credentials: true } })
 export class EventsGateway implements OnGatewayDisconnect, OnGatewayConnection {
   private users: { [key: string]: { id: string }[] } = {};
   private socketToRoom: { [key: string]: string } = {};
@@ -21,6 +21,7 @@ export class EventsGateway implements OnGatewayDisconnect, OnGatewayConnection {
 
   handleDisconnect(client: Socket): void {
     const socketId = client.id;
+    console.log(`[${this.socketToRoom[socketId]}]: ${socketId} exit`);
     const roomID = this.socketToRoom[socketId];
     const room = this.users[roomID];
     if (room) {
@@ -32,6 +33,7 @@ export class EventsGateway implements OnGatewayDisconnect, OnGatewayConnection {
       }
     }
     client.broadcast.to(roomID).emit('user_exit', { id: socketId });
+    console.log(this.users);
   }
 
   @SubscribeMessage('join_room')
@@ -48,24 +50,29 @@ export class EventsGateway implements OnGatewayDisconnect, OnGatewayConnection {
     this.users[room].push({ id: client.id });
     this.socketToRoom[client.id] = room;
     client.join(room);
+    console.log(`[${this.socketToRoom[client.id]}]: ${client.id} enter`);
     const usersInThisRoom = this.users[room].filter(
       (user) => user.id !== client.id,
     );
+    console.log(usersInThisRoom);
     client.emit('all_users', usersInThisRoom);
   }
 
   @SubscribeMessage('offer')
   offer(client: Socket, sdp: any): void {
+    console.log('offer: ', client.id);
     client.broadcast.emit('getOffer', sdp);
   }
 
   @SubscribeMessage('answer')
   answer(client: Socket, sdp: any): void {
+    console.log('answer: ', client.id);
     client.broadcast.emit('getAnswer', sdp);
   }
 
   @SubscribeMessage('candidate')
   candidate(client: Socket, candidate: any): void {
+    console.log('candidate: ', client.id);
     client.broadcast.emit('getCandidate', candidate);
   }
 }
